@@ -114,9 +114,12 @@ def load(path):
     return cfg
 
 
+def tqconfig_path(p): return episode_path(p) if p else p
+
+
 def save(cfg, path=None):
     """Write the config back with the work/raw strings as they were in the file and without the loaded show."""
-    path = path or cfg["_path"]
+    path = cfg.get("_path") or tqconfig_path(path)   # always the file it was loaded from (an episode name is not a path)
     out = {k: v for k, v in cfg.items() if k not in _ADDED}
     orig = cfg.get("_unresolved")
     if orig:

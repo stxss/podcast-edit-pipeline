@@ -28,3 +28,6 @@ fades.json
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# local list of words that must never be published (scripts/publish.py)
+publish-blocklist.txt

@@ -69,12 +69,10 @@ def main():
         for t in norm(w["raw"]): intended.append({"t": t, "o": o / FPS + (m * FPS - int(m * FPS)) / FPS, "src": round(m, 2), "spk": w["spk"]})
     intended.sort(key=lambda x: x["o"])
     # transcribe the render
-    import torch
-    d = os.path.join(os.path.dirname(torch.__file__), "lib"); os.add_dll_directory(d); os.environ["PATH"] = d + os.pathsep + os.environ["PATH"]
-    from faster_whisper import WhisperModel
-    model = WhisperModel(a.model, device="cuda", compute_type="float16")
-    sg, _ = model.transcribe(render, language="en", word_timestamps=True, vad_filter=False, initial_prompt=PROMPT, condition_on_previous_text=False)
-    heard = [{"t": t, "o": (x.start + x.end) / 2} for s in sg for x in (s.words or []) for t in norm(x.word)]
+    import asr_whisper as AW     # faster-whisper (NVIDIA/CPU) or mlx-whisper (Apple Silicon)
+    eng = AW.pick_engine("auto"); AW.PROMPT = PROMPT
+    sg, _ = AW.transcribe(eng, a.model if eng == "faster" else AW.MODELS["mlx"]["turbo"], render, "none")
+    heard = [{"t": t, "o": (x["start"] + x["end"]) / 2} for s in sg for x in s["words"] for t in norm(x["word"])]
     t_asr = time.time() - t0
     # joins in output seconds, with the source gap they skip
     joins = [{"o": p / FPS, "src_gap": [round(seg_out[k - 1][1] / FPS, 3), round(fa / FPS, 3)]} for k, (fa, fb, p) in enumerate(seg_out) if k]

@@ -35,7 +35,7 @@ def main():
         for f in [ex.submit(j) for j in jobs]: f.result()
     total = time.time() - t0; serial = sum(x[1] for x in log)
     print(f"done in {total:.0f} s (steps add up to {serial:.0f} s; parallel saved {serial - total:.0f} s)")
-    W = json.load(open(cfg))["work"]
+    W = tqconfig.load(cfg)["work"]
     json.dump({"total_s": round(total, 1), "steps": [{"step": n, "s": s} for n, s, _, _ in log]}, open(os.path.join(W, "run_post.json"), "w"), indent=1)
 
 if __name__ == "__main__": main()

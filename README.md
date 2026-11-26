@@ -21,6 +21,8 @@ Runs on Windows and macOS. Premiere Pro 25.6+ (UXP API).
 
 ## Setup
 
+After the steps below, `python tq/doctor.py` (Mac: `python3`) checks everything and says how to fix what's missing.
+
 ### 1. Prerequisites
 
 | | Windows | macOS |
@@ -53,22 +55,47 @@ Set up premiere-mcp as its README says: `npm install` in `server/`, the **MCP Br
 
 ### 3. Python packages
 
-CPU scripts only need numpy:
+**Windows / Linux:**
 
 ```
-python -m pip install -r requirements.txt          # macOS: python3
+python -m pip install -r requirements.txt           # the editing scripts (numpy)
+python -m pip install -r requirements-gpu.txt       # transcription + word alignment (torch, torchaudio, faster-whisper)
 ```
 
-Forced alignment (`tq/align.py`, `tq/verify_cuts.py`) and transcription need torch, torchaudio and
-faster-whisper. Use one Python for these (it can be the same one); on Windows with an NVIDIA GPU install the
-CUDA build of torch first (see the comment in `requirements-gpu.txt`):
+With an NVIDIA GPU, install the CUDA build of torch first (see the comment in `requirements-gpu.txt`). Without one
+everything still runs on the CPU, just slower.
+
+**Mac (Apple Silicon):** one file covers everything:
 
 ```
-python -m pip install -r requirements-gpu.txt
+python3 -m pip install -r requirements-mac.txt
 ```
 
-The transcription model is `nyrahealth/faster_CrisperWhisper` (downloaded on first use by premiere-mcp).
-On macOS it runs on CPU: expect transcription to take a large fraction of real time.
+### Transcription: which engine
+
+The pipeline needs verbatim transcripts (um/uh, repeats and false starts kept: those are what it cuts). Word times
+don't need to be perfect: `tq/align.py` fixes them from the sound afterwards.
+
+| machine | engine | command |
+|---|---|---|
+| any (default) | Whisper large-v3-turbo with a filler prompt: faster-whisper on Windows/Linux, mlx-whisper (GPU) on Apple Silicon | `python tq/asr_whisper.py EP01` |
+| NVIDIA GPU, most fillers | NVIDIA Nemotron 3.5 Transcribe via [NeMo-Speech.cpp](https://github.com/NVIDIA/NeMo-Speech.cpp) | `python tq/asr_nemotron.py EP01` |
+| Mac with 32 GB+, most fillers (untested) | the same Nemotron through NeMo-Speech.cpp's Metal build, IQ4_NL model | `python tq/asr_nemotron.py EP01` with `asr_device` in local.json |
+
+Measured on a real 45-minute, two-mic episode (same audio, then the same forced alignment):
+
+| engine | speech missed (mic 1 / mic 2) | fillers found | time (RTX 5090) |
+|---|---|---|---|
+| Nemotron 3.5 Transcribe | 3.6 s / 8.0 s | 126 / 44 | ~25 min (with Premiere open) |
+| Whisper turbo, faster-whisper's own voice detection | 3.4 s / 6.0 s | 104 / 21 | ~1 min |
+| Whisper turbo, `asr_whisper.py` voice detection (what runs on a Mac) | 6.7 s / 9.9 s | 100 / 20 | ~1 min |
+| Whisper turbo, no voice detection | 8.5 s / 11.1 s | 86 / 24 | ~1 min |
+
+Whisper misses some fillers; `tq/build_edl.py` also finds fillers from the sound (steady-pitch "uhh" with no word),
+which recovers part of the gap. On an Apple Silicon Mac, mlx-whisper turbo is expected to take a few minutes per hour
+of audio (published benchmarks; not measured here). CrisperWhisper is not recommended on a Mac (CPU only there) and its
+weights are licensed for non-commercial research only. After transcribing, set `transcripts_unaligned` in the episode
+config to the new files (`<id>_tr_whisper.json` or `<id>_tr_nemotron.json`).
 
 ### 4. Show profile and local settings
 
@@ -126,9 +153,17 @@ review panel `tq/review.py` on http://127.0.0.1:8790, then the premiere-mcp batc
 
 Episode work folders (`<media_root>/<EP>/_work`: wavs, transcripts, edl/plan/review json) stay outside the repo.
 
+## Publishing your own copy without your private history
+
+If you keep your own fork with private material in its history, `python scripts/publish.py "what changed"` pushes
+only the current files as one new commit to a separate remote (default `github`), and refuses if a file is local-only,
+looks like a secret, or matches a word in your gitignored `publish-blocklist.txt` (show names, email, paths: one
+regular expression per line). `python scripts/publish.py --help` has the one-time setup.
+
 ## Notes
 
 - `plan.json["spec"]` carries every show-specific Premiere setting, so the premiere-mcp tools stay generic.
 - The analysis code is written for any number of speakers (tested with two); the Premiere layout is split (all speakers) or solo (one speaker).
   Split transforms are per speaker in show.json, so a 3-up split is a matter of settings and a background.
+- Mac: `docs/mac-test.md` is a first-run checklist.
 - Models in Claude Code: the `editorial` subagent runs on Opus, `runner` on Sonnet.
