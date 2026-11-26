@@ -1,0 +1,10 @@
+# Forced alignment (tq/align.py, tq/verify_cuts.py) and transcription (premiere-mcp's transcribe.py, used by
+# transcribe_media and tq/fill_holes.py). Works on CPU too, just slower.
+# Windows + NVIDIA: install torch/torchaudio from the CUDA index first, e.g.
+#   python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+# macOS (Apple Silicon): plain pip install; runs on CPU (MPS is not used by these scripts).
+# Tested here with torch/torchaudio 2.11, faster-whisper 1.2.1, ctranslate2 4.8.5.
+numpy>=2.0
+torch>=2.4
+torchaudio>=2.4
+faster-whisper>=1.1

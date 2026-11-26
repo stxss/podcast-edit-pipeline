@@ -1,0 +1,2 @@
+# CPU scripts in tq/ (build_edl, detect, make_plan, fades, review, fill_holes, ...). Python 3.10+.
+numpy>=2.0

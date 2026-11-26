@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TQ Review</title>
+<style>
+  :root { --bg:#16171a; --panel:#1f2125; --line:#2d3036; --text:#e4e6ea; --dim:#8b9099; --cut:#e5484d; --keep:#30a46c;
+          --mute:#f5a524; --accent:#7c8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--line); padding:10px 16px;
+           display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  h1 { font-size:16px; margin:0 12px 0 0; }
+  .tabs button, .seg button, .btn { background:#2a2d33; color:var(--text); border:1px solid var(--line); padding:5px 10px;
+           border-radius:6px; cursor:pointer; font:inherit; }
+  .tabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  .spacer { flex:1; }
+  #status { color:var(--dim); font-size:12px; }
+  main { max-width:1100px; margin:0 auto; padding:12px 16px 80px; }
+  .filters { display:flex; flex-wrap:wrap; gap:14px; margin:6px 0 12px; color:var(--dim); font-size:13px; }
+  .filters label { display:flex; gap:5px; align-items:center; cursor:pointer; }
+  .summary { color:var(--dim); font-size:13px; margin-bottom:8px; }
+  .row { background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--line); border-radius:8px;
+         padding:9px 12px; margin-bottom:8px; display:grid; grid-template-columns:110px minmax(0,1fr) auto; gap:12px; align-items:start; }
+  .row > div { min-width:0; }
+  .ctx { overflow-wrap:anywhere; }
+  .row.sel { outline:2px solid var(--accent); }
+  .row.d-cut { border-left-color:var(--cut); } .row.d-keep { border-left-color:var(--keep); } .row.d-mute { border-left-color:var(--mute); }
+  .row.changed { box-shadow: inset 0 0 0 1px var(--accent); }
+  .meta { font-size:12px; color:var(--dim); }
+  .meta .t { font-size:15px; color:var(--text); font-variant-numeric:tabular-nums; font-weight:600; }
+  .badge { display:inline-block; padding:0 6px; border-radius:4px; font-size:11px; margin:2px 4px 0 0; background:#30333a; }
+  .r-high { background:#5b2a2c; } .r-medium { background:#5a4a1f; } .r-low { background:#30333a; } .r-tight { background:#5a3a1f; }
+  .ctx { font-size:13px; color:var(--dim); }
+  .ctx .w.L, .ctx .w.T { opacity:.75; }
+  .v-pass { background:#1f4d36; } .v-fail { background:#7a2226; } .v-unclear, .v-unchecked { background:#4a4a20; }
+  .vfail { color:#ff9a9e; font-size:12px; margin-bottom:3px; }
+  .what { font-size:14px; margin-bottom:3px; } .what b { color:#ffb3b5; font-weight:600; }
+  .d-keep .what b { color:#bfe8d1; } .d-mute .what b { color:#ffe1a6; }
+  .w { margin-right:4px; }
+  .w.in { background:rgba(229,72,77,.25); color:#ffb3b5; text-decoration:line-through; border-radius:3px; padding:0 2px; }
+  .d-keep .w.in { text-decoration:none; background:rgba(48,164,108,.2); color:#bfe8d1; }
+  .d-mute .w.in { text-decoration:none; background:rgba(245,165,36,.22); color:#ffe1a6; }
+  .note { color:var(--dim); font-size:12px; margin-top:3px; }
+  .ctrl { display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .seg { display:flex; } .seg button { border-radius:0; } .seg button:first-child { border-radius:6px 0 0 6px; }
+  .seg button:last-child { border-radius:0 6px 6px 0; }
+  .seg button.on.cut { background:var(--cut); border-color:var(--cut); } .seg button.on.keep { background:var(--keep); border-color:var(--keep); }
+  .seg button.on.mute { background:var(--mute); border-color:var(--mute); color:#111; }
+  .play { display:flex; gap:4px; }
+  table { width:100%; border-collapse:collapse; } td, th { padding:6px; border-bottom:1px solid var(--line); text-align:left; }
+  input[type=text], input[type=number] { background:#111316; color:var(--text); border:1px solid var(--line); border-radius:5px; padding:4px 6px; font:inherit; width:100%; }
+  input.num { width:90px; }
+  .help { color:var(--dim); font-size:12px; }
+  kbd { background:#2a2d33; border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:11px; }
+  .editor { grid-column:1 / -1; border-top:1px solid var(--line); padding-top:8px; }
+  .ebar .grp { display:inline-flex; gap:2px; align-items:center; background:#24262b; border-radius:7px; padding:2px 4px; }
+  .btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .ebar .hover { margin-left:auto; font-variant-numeric:tabular-nums; }
+  .editor .help { margin-top:4px; }
+  .editor canvas { width:100%; height:230px; display:block; background:#111316; border-radius:6px; cursor:crosshair; touch-action:none; }
+  .ebar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; font-size:12px; color:var(--dim); }
+  .ebar .edge { font-variant-numeric:tabular-nums; color:var(--text); }
+  .chk { margin-top:4px; font-size:13px; } .chk .bad { color:#ff9a9e; } .chk .ok { color:#8fd6ad; }
+  .v-edited { background:#2d3b6e; }
+  .subs { margin-top:6px; display:flex; flex-direction:column; gap:4px; }
+  .sub { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; padding:3px 6px; border-left:3px solid var(--line); background:#1a1c20; border-radius:4px; }
+  .sub.d-cut { border-left-color:var(--cut); } .sub.d-keep { border-left-color:var(--keep); } .sub.d-mute { border-left-color:var(--mute); }
+  .sub .st { color:var(--dim); font-variant-numeric:tabular-nums; } .sub .vfail { flex-basis:100%; margin:0; }
+  .sub .seg button { padding:2px 8px; font-size:12px; }
+  .w.in.kept { text-decoration:none; background:rgba(48,164,108,.2); color:#bfe8d1; }
+  .ebar select { background:#111316; color:var(--text); border:1px solid var(--line); border-radius:5px; padding:3px; font:inherit; }
+  @media (max-width:700px) { .row { grid-template-columns:1fr; } .ctrl { align-items:flex-start; flex-direction:row; flex-wrap:wrap; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">TQ review</h1>
+  <div class="tabs" id="tabs">
+    <button data-tab="cuts" class="on">Cuts</button><button data-tab="cold">Cold open</button>
+    <button data-tab="chapters">Chapters</button><button data-tab="shorts">Shorts</button>
+  </div>
+  <span class="spacer"></span>
+  <span id="status">loading...</span>
+  <button class="btn primary" id="save">Save</button>
+</header>
+<main>
+  <section id="cuts">
+    <div class="filters">
+      <label><input type="checkbox" data-f="edl" checked> Cuts in the edit</label>
+      <label><input type="checkbox" data-f="det" checked> Detector candidates</label>
+      <label><input type="checkbox" data-f="mute" checked> Audio mutes</label>
+      <label><input type="checkbox" data-f="user" checked> Your cuts</label>
+      <label>| risk <select id="risk"><option value="">all</option><option>high</option><option>medium</option><option>low</option><option>tight</option></select></label>
+      <label><input type="checkbox" id="changedOnly"> changed only</label>
+      <label><input type="checkbox" id="lookOnly" checked> <b>only what needs a look</b></label>
+      <label><input type="checkbox" id="failedOnly"> failed check only</label>
+      <label><input type="checkbox" id="editedOnly"> edited only</label>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="help"><kbd>J</kbd>/<kbd>K</kbd> next/prev &nbsp; <kbd>Space</kbd> play edited &nbsp; <kbd>O</kbd> play original &nbsp; <kbd>X</kbd> toggle &nbsp; <kbd>E</kbd> edit edges &nbsp; <kbd>Ctrl+S</kbd> save<br>
+      Editor open: <kbd>Space</kbd> play the join · <kbd>L</kbd> loop it · <kbd>←</kbd>/<kbd>→</kbd> end ±1 frame · <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> start ±1 frame · <kbd>+</kbd>/<kbd>-</kbd> zoom · <kbd>Tab</kbd> next cut in the row · <kbd>C</kbd>/<kbd>M</kbd> draw another cut/mute · <kbd>Del</kbd> delete one of yours</div>
+    <div id="list"></div>
+  </section>
+  <section id="cold" hidden></section>
+  <section id="chapters" hidden></section>
+  <section id="shorts" hidden></section>
+</main>
+<audio id="player"></audio>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+let D = null, sel = 0, dirty = false;
+// speakers come from the show profile (/data): ids, names, colours
+const SPK = () => D.speakers.map(s => s.id);
+const COL = id => (D.speakers.find(s => s.id === id) || { color: "#999999" }).color;
+const RGB = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(",");
+const player = $("#player");
+const fmt = (t) => { t = Math.max(0, t); const m = Math.floor(t / 60), s = (t - m * 60).toFixed(1); return `${m}:${s.padStart(4, "0")}`; };
+const parseT = (v) => { v = String(v).trim(); if (v.includes(":")) { const [m, s] = v.split(":"); return (+m) * 60 + (+s); } return +v; };
+const PAD = 2.5;
+
+function setDirty(d) { dirty = d; $("#status").textContent = d ? "unsaved changes" : (D.saved_at ? `saved ${D.saved_at}` : "nothing saved yet"); }
+function play(url) { if (typeof PL !== "undefined") { PL.loop = null; PL.loopId = null; PL.stop(); } player.src = url; player.play(); }
+const edges = (it) => [it.a2 ?? it.a, it.b2 ?? it.b];
+const isEdited = (it) => it.a2 != null;
+const isCut = (it) => it.decision === "cut";
+const isMute = (it) => it.decision === "mute";
+const FADES = [[2, "2f (default)"], [4, "4f"], [6, "6f"], [10, "10f"], [0, "none"]];
+const fadeOf = (it) => it.fade ?? 2;
+// preview URL params for a group: every active cut / mute in it
+function grpParams(grp) {
+  const cuts = grp.filter(isCut).map(it => edges(it).join(",")).join(";");
+  const mutes = grp.filter(isMute).map(it => edges(it).concat(it.spk).join(",")).join(";");
+  return (cuts ? `&cut=${cuts}` : "") + (mutes ? `&mute=${mutes}` : "");
+}
+const span = (grp) => [Math.min(...grp.map(it => edges(it)[0])), Math.max(...grp.map(it => edges(it)[1]))];
+function playGroup(grp, edited) {
+  const [a, b] = span(grp);
+  play(`/audio?a=${a - PAD}&b=${b + PAD}` + (edited ? grpParams(grp) : ""));
+}
+const isMuteKind = (it) => it.group === "mute" || (it.group === "user" && it.kind === "mute");
+function options(it) { return isMuteKind(it) ? ["mute", "keep"] : ["cut", "keep"]; }
+
+function visible() {
+  const groups = [...document.querySelectorAll(".filters input[data-f]")].filter(x => x.checked).map(x => x.dataset.f);
+  const risk = $("#risk").value, ch = $("#changedOnly").checked;
+  const fo = $("#failedOnly").checked, lo = $("#lookOnly").checked;
+  const eo = $("#editedOnly").checked;
+  return D.items.filter(it => groups.includes(it.group) && (!risk || it.risk === risk) && (!ch || it.decision !== it.default || isEdited(it))
+    && (!fo || it.verify === "fail" || (it.render && it.render.status === "flag") || (it.check && it.check.warn.length)) && (!eo || isEdited(it) || it.group === "user")
+    && (!lo || it.look || it.group === "user" || isEdited(it) || it.decision !== it.default));
+}
+// neighbouring cuts (less than 0.35 s apart) are one row and one editor; a section you add inside an editor
+// (anchor = that row's id) stays in that row however far from the others it is
+const NEAR = 0.35;
+function groupsOf(items) {
+  const out = [], loose = [], anchored = [];
+  for (const it of items) (it.group === "user" && it.anchor && items.some(x => x.id === it.anchor) ? anchored : loose).push(it);
+  for (const it of loose.sort((x, y) => edges(x)[0] - edges(y)[0])) {
+    const g = out[out.length - 1];
+    if (g && edges(it)[0] <= Math.max(...g.map(x => edges(x)[1])) + NEAR) g.push(it); else out.push([it]);
+  }
+  for (const it of anchored) { const g = out.find(g => g.some(x => x.id === it.anchor)); g.push(it); }
+  for (const g of out) g.sort((x, y) => edges(x)[0] - edges(y)[0]);
+  return out;
+}
+let GROUPS = [];
+const gid = (grp) => (grp.find(x => x.group !== "user" || !x.anchor) || grp[0]).id;
+const GROUP = { edl: "in the edit", det: "candidate", mute: "audio mute", user: "yours" };
+function updateSummary() {
+  const n = (g, d) => D.items.filter(i => i.group === g && i.decision === d).length;
+  $("#summary").textContent = `${GROUPS.length} rows (${visible().length} cuts) shown. In the edit: ${n("edl","cut")} cut, ${n("edl","keep")} undone. ` +
+    `Candidates: ${n("det","cut")} to cut of ${D.items.filter(i=>i.group==="det").length}. Mutes: ${n("mute","mute")} of ${D.items.filter(i=>i.group==="mute").length}. ` +
+    `Edited edges: ${D.items.filter(isEdited).length}. Your cuts: ${n("user","cut")}.`;
+}
+function renderCuts() {
+  GROUPS = groupsOf(visible()); sel = Math.min(sel, Math.max(0, GROUPS.length - 1));
+  updateSummary();
+  const list = $("#list"); list.innerHTML = "";
+  for (const k in rowEls) delete rowEls[k];
+  GROUPS.forEach((grp, k) => {
+    const row = document.createElement("div"); row._k = k; row._grp = grp;
+    grp.forEach(it => rowEls[it.id] = row);
+    fillRow(row);
+    if (openId === gid(grp)) mountEditor(grp, row);
+    list.appendChild(row);
+  });
+}
+const esc = s => String(s).replace(/</g, "&lt;");
+function whatOf(it) {
+  const gone = it.ctx.filter(w => w.in).map(w => w.w);
+  const verb = isMuteKind(it) ? `mutes ${it.spk}:` : "removes";
+  return gone.length && !(gone.length === 1 && gone[0] === "(sound)") ? `${verb} "<b>${esc(gone.join(" "))}</b>"` : `${verb}: sound, no words`;
+}
+function renderOf(it) {
+  const r = it.render; if (!r) return "";
+  if (r.status === "pass") return `<span class="badge v-pass" title="the edited program, re-transcribed as a whole, reads right at this join">program check passed</span>`;
+  const bits = [r.missing.length ? `missing "${esc(r.missing.join(" "))}"` : "", r.extra.length ? `extra "${esc(r.extra.join(" "))}"` : "", r.filler.length ? `filler left "${esc(r.filler.join(" "))}"` : ""].filter(Boolean);
+  return `<span class="badge v-fail" title="${bits.join(", ")}">program check: ${bits.join(", ")}</span>`;
+}
+function badgeOf(it) {
+  const live = isEdited(it) || it.group === "user";
+  return live ? `<span class="badge v-edited">${it.group === "user" ? "yours" : "edited"}${it.check && it.check.warn.length ? " · warning" : ""}</span>`
+    : `<span class="badge v-${it.verify}" title="${esc(it.verify_reason)}">${it.verify === "pass" ? "check passed" : it.verify === "fail" ? "check FAILED" : it.verify}</span>`;
+}
+function failOf(it) {
+  const live = isEdited(it) || it.group === "user";
+  if (live) return it.check && it.check.warn.length ? `<div class="vfail">${esc(it.check.warn.join(" · "))}</div>` : "";
+  if (it.verify !== "fail") return "";
+  const w = it.verify_words.filter(r => r[1] >= 0.15 && r[2] < 0.6 * r[1]).map(r => esc(r[0]) + " " + Math.round(r[1]*100) + "% → " + Math.round(r[2]*100) + "%").join(", ");
+  return `<div class="vfail">${esc(it.verify_reason)}${w ? ` (audio match before → after the cut: ${w})` : ""}</div>`;
+}
+function ctxOf(grp) {   // context words of the whole group; a word is struck if any active cut in the group removes it
+  const m = new Map();
+  for (const it of grp) for (const w of it.ctx) {
+    const key = w.t + "|" + w.w, on = w.in && it.decision !== "keep", o = m.get(key);
+    if (!o) m.set(key, { ...w, in: w.in, on }); else { o.in = o.in || w.in; o.on = o.on || on; }
+  }
+  const ws = [...m.values()].sort((a, b) => a.t - b.t);
+  return ws.map(w => `<span class="w${w.in ? " in" : ""}${w.in && !w.on ? " kept" : ""}" style="color:${w.spk ? COL(w.spk) : "inherit"}" title="${w.spk} ${w.t}">${esc(w.w)}</span>`).join("");
+}
+function segBtns(it) { return `<div class="seg" data-id="${esc(it.id)}">${options(it).map(o => `<button data-o="${o}" class="${o}${it.decision === o ? " on" : ""}">${o}</button>`).join("")}${it.group === "user" ? `<button data-o="del" title="delete this section (Del in the editor)">✕</button>` : ""}</div>`; }
+function delUser(it) { const i = D.items.indexOf(it); if (i >= 0) D.items.splice(i, 1); setDirty(true); renderCuts(); }
+function fillRow(row) {
+  const k = row._k, grp = row._grp, ed = row.querySelector(".editor"), one = grp.length === 1, it = grp[0];
+  const dec = grp.some(isCut) ? "cut" : grp.some(isMute) ? "mute" : "keep";
+  row.className = `row d-${dec}` + (k === sel ? " sel" : "") + (grp.some(x => x.decision !== x.default || isEdited(x)) ? " changed" : "");
+  const [a, b] = span(grp);
+  const subs = one ? "" : `<div class="subs">${grp.map(x => `<div class="sub d-${x.decision}">${segBtns(x)}<span class="st">${fmt(edges(x)[0])}</span>
+      <span>${whatOf(x)}</span><span class="badge">${GROUP[x.group]}</span><span class="badge">${x.kind}</span>${badgeOf(x)}${renderOf(x)}${x.fade != null ? `<span class="badge">fade ${x.fade || "none"}</span>` : ""}${failOf(x)}</div>`).join("")}</div>`;
+  row.innerHTML = `
+    <div class="meta"><div class="t">${fmt(a)}</div>${(b - a).toFixed(2)} s · ${[...new Set(grp.map(x => x.spk))].join("+")}<br>
+      ${one ? `<span class="badge">${GROUP[it.group]}</span><span class="badge">${it.kind}</span><span class="badge r-${it.risk}">${it.risk}</span><br>${badgeOf(it)}${renderOf(it)}${it.fade != null ? `<span class="badge">fade ${it.fade || "none"}</span>` : ""}`
+            : `<span class="badge">${grp.length} cuts together</span>`}</div>
+    <div>${one ? `<div class="what">${whatOf(it)}</div>${failOf(it)}` : ""}<div class="ctx">…${ctxOf(grp)}…</div>${subs}
+      ${grp.filter(x => x.note && x.group === "edl").map(x => `<div class="note">${esc(x.note)}</div>`).join("")}</div>
+    <div class="ctrl">${one ? segBtns(it) : ""}
+      <div class="play"><button class="btn" data-p="orig" title="O">▶ original</button><button class="btn" data-p="edit" title="Space">▶ edited</button><button class="btn" data-p="ed" title="E">${openId === gid(grp) ? "close" : "edit"}</button></div></div>`;
+  row.querySelectorAll(".seg").forEach(sg => {
+    const x = grp.find(y => y.id === sg.dataset.id);
+    sg.querySelectorAll("button").forEach(bt => bt.onclick = () => { if (bt.dataset.o === "del") return delUser(x); x.decision = bt.dataset.o; sel = k; setDirty(true); fillRow(row); markSel(); updateSummary(); });
+  });
+  row.querySelector('[data-p="orig"]').onclick = () => { sel = k; playGroup(grp, false); markSel(); };
+  row.querySelector('[data-p="edit"]').onclick = () => { sel = k; playGroup(grp, true); markSel(); };
+  row.querySelector('[data-p="ed"]').onclick = () => { sel = k; toggleEditor(grp); };
+  if (ed) { row.appendChild(ed); if (ed._refresh) ed._refresh(); }
+}
+function markSel() { [...document.querySelectorAll("#list .row")].forEach((r, k) => r.classList.toggle("sel", k === sel)); }
+
+// ---------- edge editor ----------
+// Waveform (1 ms peaks, both mics, 48 kHz audio) for the row's cuts +-4 s; zoom/pan inside it.
+// Playback runs in the browser (Web Audio), so edits are heard instantly; the join can loop while you move edges.
+// Each join is previewed with the cut's fade: a Constant Power crossfade of N frames centred on the edit, like Premiere.
+let openId = null, edKey = null; const waveCache = {}, rowEls = {}, editorView = {}, editorAct = {};
+const FR = 30, snap = t => Math.round(t * FR) / FR, LOAD = 4.0, JOIN = 0.7;
+const fmtMs = (t) => { const m = Math.floor(t / 60), s = t - m * 60; return `${m}:${s.toFixed(3).padStart(6, "0")}`; };
+let AC = null;
+const PL = { nodes: [], map: null, end: 0, loop: null, loopId: null, owner: null, tm: null,
+  stop() { this.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); this.nodes = []; this.map = null; clearTimeout(this.tm); },
+  head() { if (!this.map || !AC) return null; const now = AC.currentTime; let h = null;
+    for (const [t, s0, d] of this.map) if (now >= t && now < t + d) h = s0 + (now - t);
+    return h; } };
+function toggleEditor(grp) {
+  PL.stop(); PL.loop = null; PL.loopId = null;
+  openId = openId === gid(grp) ? null : gid(grp); renderCuts();
+  const r = $("#list .row.sel"); if (r) r.scrollIntoView({ block: "nearest" });
+}
+async function getWave(grp) {
+  const key = gid(grp), [ca, cb] = span(grp), w = waveCache[key];
+  if (w && w.a <= ca - 1 && w.b >= cb + 1) return w;
+  const a = Math.max(0, Math.min(ca, ...grp.map(x => x.a)) - LOAD), b = Math.max(cb, ...grp.map(x => x.b)) + LOAD;
+  const W = await fetch(`/wave?a=${a}&b=${b}`).then(r => r.json());
+  AC = AC || new AudioContext();
+  const get = async spk => AC.decodeAudioData(await fetch(`/audio?a=${a}&b=${b}&solo=${spk}`).then(r => r.arrayBuffer()));
+  W.buf = {}; for (const s of SPK()) W.buf[s] = await get(s);
+  return waveCache[key] = W;
+}
+async function recheck(it) {
+  const [a, b] = edges(it);
+  const r = await fetch(`/check?a=${a}&b=${b}`).then(r => r.json());
+  it.check = { removes: r.removes, warn: r.warn, edge_db: r.edge_db }; it.ctx = r.ctx;
+  if (rowEls[it.id]) fillRow(rowEls[it.id]); updateSummary();
+}
+function setEdges(it, a, b) {
+  a = snap(a); b = snap(b); if (b - a < 1 / FR - 1e-9) return false;
+  if (it.group === "user") { it.a = a; it.b = b; }
+  else { it.a2 = a; it.b2 = b; }   // only "reset edges" clears an edit
+  setDirty(true); return true;
+}
+// equal-power curves for crossfades
+const CURVE_N = 64, C_IN = new Float32Array(CURVE_N), C_OUT = new Float32Array(CURVE_N);
+for (let i = 0; i < CURVE_N; i++) { const x = i / (CURVE_N - 1); C_IN[i] = Math.sin(x * Math.PI / 2); C_OUT[i] = Math.cos(x * Math.PI / 2); }
+// pieces: [s0, s1, fadeInSeconds] source spans played back to back; each join crossfades over the next piece's fade
+// (centred: the outgoing piece runs f/2 past its end, the incoming starts f/2 early). mutes: [{a,b,spk}]
+function playPieces(W, pieces, mutes) {
+  PL.stop(); player.pause(); if (AC.state === "suspended") AC.resume();
+  let t = AC.currentTime + 0.03; const map = [];
+  pieces = pieces.map(([s0, s1, f], k) => [s0, s1, k ? Math.max(0.004, f) : 0]);
+  pieces.forEach(([s0, s1, fin], k) => {
+    const fout = k < pieces.length - 1 ? pieces[k + 1][2] : 0;
+    const p0 = Math.max(W.a, s0 - fin / 2), p1 = Math.min(W.b, s1 + fout / 2), d = p1 - p0; if (d <= 0.02) return;
+    for (const spk of SPK()) {
+      const src = AC.createBufferSource(); src.buffer = W.buf[spk]; const g = AC.createGain(); src.connect(g).connect(AC.destination);
+      g.gain.setValueAtTime(1, t);
+      if (fin) g.gain.setValueCurveAtTime(C_IN, t, fin);
+      if (fout) g.gain.setValueCurveAtTime(C_OUT, t + d - fout, fout);
+      for (const m of mutes) if (m.spk === spk && m.b > p0 && m.a < p1) {
+        const x = t + Math.max(0.006, m.a - p0), y = t + Math.min(d - 0.006, m.b - p0);
+        g.gain.setValueAtTime(1, x - 0.005); g.gain.linearRampToValueAtTime(0, x); g.gain.setValueAtTime(0, y); g.gain.linearRampToValueAtTime(1, y + 0.005);
+      }
+      src.start(t, p0 - W.a, d); PL.nodes.push(src);
+    }
+    map.push([t, p0, d]); t += d - fout;
+  });
+  PL.map = map; PL.end = t;
+  PL.tm = setTimeout(() => { if (PL.loop) PL.loop(); else PL.map = null; }, (t - AC.currentTime) * 1000 + 30);
+}
+function mountEditor(grp, row) {
+  const box = document.createElement("div"); box.className = "editor";
+  let act = Math.max(0, grp.findIndex(x => x.decision !== "keep"));
+  if (editorAct[gid(grp)]) { const i = grp.findIndex(x => x.id === editorAct[gid(grp)]); if (i >= 0) act = i; delete editorAct[gid(grp)]; }
+  const A = () => grp[act];
+  box.innerHTML = `<canvas></canvas>
+    <div class="ebar"><span class="who"></span><span>cut <span class="edge" data-e="a"></span> → <span class="edge" data-e="b"></span></span>
+      <span class="grp"><button class="btn" data-n="a-" title="Shift+←">◀</button>start<button class="btn" data-n="a+" title="Shift+→">▶</button></span>
+      <span class="grp"><button class="btn" data-n="b-" title="←">◀</button>end<button class="btn" data-n="b+" title="→">▶</button></span>
+      <span class="grp">fade <select data-fade>${FADES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></span>
+      <span class="grp"><button class="btn primary" data-x="join" title="Space">▶ join</button><button class="btn" data-x="loop" title="L">⟳ loop join</button></span>
+      <span class="grp"><button class="btn" data-x="edit">▶ edited ±2.5 s</button><button class="btn" data-x="orig">▶ original ±2.5 s</button><button class="btn" data-x="stop">■</button></span>
+      <span class="grp"><button class="btn" data-z="in" title="+">＋</button><button class="btn" data-z="out" title="-">－</button><button class="btn" data-z="fit">fit</button></span>
+      <span class="grp">add <button class="btn" data-add="cut" title="C, or Shift+drag: draw another cut on the waveform">＋ cut</button><button class="btn" data-add="mute" title="M: draw a mute (silences the louder mic there)">＋ mute</button></span>
+      ${grp.length > 1 ? `<button class="btn" data-x="merge" title="one cut from the first start to the last end">merge into one cut</button>` : ""}
+      <span class="act-btn"></span>
+      <span class="hover"></span></div>
+    <div class="chk"></div>
+    <div class="help">Join = ${JOIN} s before the first cut, through the cuts, ${JOIN} s after. Loop it and move the edges: each pass plays the new edges.
+      ${grp.length > 1 ? "Several cuts: click inside one to select it (bright red); the arrows and the fade apply to the selected cut. " : ""}
+      Fade = Constant Power crossfade centred on the edit (the pipeline puts 2f on every edit; longer smooths a tight join).
+      Wheel = zoom, drag the background = scroll, click = play from there. Add as many sections as you like: ＋ cut / ＋ mute (or C / M), then drag over the waveform;
+      Shift+drag = another cut directly. A mute silences the louder mic in that stretch (e.g. a cough from the host who isn't talking). Del = delete the selected section of yours. Grey lines = video frames.</div>`;
+  row.appendChild(box);
+  const cv = $("canvas", box), chk = $(".chk", box), hov = $(".hover", box), fsel = $("[data-fade]", box);
+  let W = null, V = null, drag = null, sel_ = null, hoverT = null, raf = 0, arm = null, drawKind = "cut";   // arm = "cut" | "mute": the next drag draws one
+  const setArm = (k) => { arm = arm === k ? null : k; box.querySelectorAll("[data-add]").forEach(b => b.classList.toggle("on", b.dataset.add === arm)); };
+  const showChk = () => {
+    const it = A(), [a, b] = edges(it);
+    $(".who", box).textContent = grp.length > 1 ? `cut ${act + 1}/${grp.length} (${it.decision}) ·` : "";
+    $('[data-e="a"]', box).textContent = fmtMs(a);
+    $('[data-e="b"]', box).textContent = fmtMs(b) + ` · ${(b - a).toFixed(3)} s, ${Math.round((b - a) * FR)} frames`;
+    fsel.value = String(fadeOf(it));
+    const c = it.check;
+    chk.innerHTML = !c ? `<span>original edges · automatic check: ${it.verify}${it.verify_reason ? " (" + esc(it.verify_reason) + ")" : ""}</span>` :
+      `removes: <b>${c.removes.length ? esc(c.removes.join(" ")) : "no words, only sound"}</b> · edges ${c.edge_db.map(x => (x > 0 ? "+" : "") + x.toFixed(0) + " dB").join(" / ")} over the mic floor ` +
+      (c.warn.length ? `<span class="bad">· ${esc(c.warn.join(" · "))}</span>` : `<span class="ok">· clean: no word cut, both edges quiet</span>`);
+    $('[data-x="loop"]', box).classList.toggle("on", !!PL.loop && PL.loopId === gid(grp));
+    const ab = $(".act-btn", box); ab.innerHTML = grp.length > 1 ? segBtns(it) : "";
+    const sg = $(".seg", ab); if (sg) sg.querySelectorAll("button").forEach(bt => bt.onclick = () => { if (bt.dataset.o === "del") return delUser(it); it.decision = bt.dataset.o; setDirty(true); fillRow(row); updateSummary(); edgesChanged(); });
+  };
+  box._refresh = showChk; showChk();
+  const fit = () => { const [ca, cb] = span(grp), half = Math.max(0.6, (cb - ca) / 2 + 0.45), m = (ca + cb) / 2; V = clampV(m - half, m + half); };
+  const clampV = (a, b) => { const s = Math.min(b - a, W.b - W.a); if (a < W.a) { a = W.a; b = a + s; } if (b > W.b) { b = W.b; a = b - s; } return [a, b]; };
+  const req = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
+  const draw = () => {
+    if (!W || !V) return;
+    const dpr = window.devicePixelRatio || 1, w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
+    if (!w) return;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const g = cv.getContext("2d"), [va, vb] = V, sp = vb - va, X = t => (t - va) / sp * w;
+    const rulerH = 16 * dpr, wordsY = h * 0.70, rowH = (wordsY - rulerH) / SPK().length;
+    g.clearRect(0, 0, w, h);
+    const ppf = w / (sp * FR);
+    if (ppf > 4 * dpr) for (let f = Math.ceil(va * FR); f <= vb * FR; f++) {
+      g.fillStyle = f % FR === 0 ? "rgba(255,255,255,.35)" : f % 5 === 0 ? "rgba(255,255,255,.20)" : "rgba(255,255,255,.11)";
+      g.fillRect(Math.round(X(f / FR)), rulerH, 1, h - rulerH);
+    }
+    if (hoverT != null && ppf > 4 * dpr) { const f = Math.floor(hoverT * FR); g.fillStyle = "rgba(124,140,255,.12)"; g.fillRect(X(f / FR), rulerH, X((f + 1) / FR) - X(f / FR), h - rulerH); }
+    g.fillStyle = "#8b9099"; g.font = `${10 * dpr}px system-ui`; g.textBaseline = "top";
+    const steps = [0.1, 0.2, 0.5, 1, 2], step = steps.find(s => s / sp * w > 70 * dpr) || 5;
+    for (let t = Math.ceil(va / step) * step; t <= vb; t += step) { const x = X(t); g.fillRect(x, 0, 1, 5 * dpr); g.fillText(fmt(t) + (step < 1 ? String((t % 1).toFixed(2)).slice(3) : ""), x + 3 * dpr, 2 * dpr); }
+    // cuts: selected one bright, other active ones lighter, kept ones as an outline
+    grp.forEach((it, i) => {
+      const [ca, cb] = edges(it), on = it.decision !== "keep", me = i === act;
+      const col = isMuteKind(it) ? "245,165,36" : "229,72,77";
+      if (on) { g.fillStyle = `rgba(${col},${me ? .24 : .12})`; g.fillRect(X(ca), rulerH, X(cb) - X(ca), h - rulerH); }
+      else { g.strokeStyle = `rgba(48,164,108,${me ? .9 : .5})`; g.setLineDash([5 * dpr, 4 * dpr]); g.strokeRect(X(ca), rulerH + 1, X(cb) - X(ca), h - rulerH - 2); g.setLineDash([]); }
+      if (isEdited(it)) { g.strokeStyle = "rgba(255,255,255,.45)"; g.setLineDash([2 * dpr, 3 * dpr]); g.strokeRect(X(it.a), rulerH + 1, X(it.b) - X(it.a), wordsY - rulerH - 2); g.setLineDash([]); }
+      if (on && fadeOf(it) > 0) {   // fade zone centred on the join point
+        const f = fadeOf(it) / FR / 2; g.fillStyle = "rgba(255,255,255,.10)";
+        g.fillRect(X(ca - f), rulerH, X(ca + f) - X(ca - f), h - rulerH); g.fillRect(X(cb - f), rulerH, X(cb + f) - X(cb - f), h - rulerH);
+      }
+    });
+    SPK().map(s => [s, COL(s)]).forEach(([spk, col], li) => {
+      const y0 = rulerH + li * rowH, mid = y0 + rowH / 2, pk = W.peaks[spk], sc = rowH / 2 / 0.35;
+      g.fillStyle = col; g.beginPath();
+      for (let x = 0; x < w; x++) {
+        const i0 = Math.floor((va + x / w * sp - W.a) / W.bin), i1 = Math.max(i0 + 1, Math.floor((va + (x + 1) / w * sp - W.a) / W.bin));
+        let m = 0; for (let i = Math.max(0, i0); i < Math.min(pk.length, i1); i++) if (pk[i] > m) m = pk[i];
+        const v = Math.max(0.5 * dpr, Math.min(rowH / 2, m * sc)); g.rect(x, mid - v, 1, 2 * v);
+      }
+      g.fill();
+      const tv = Math.min(rowH / 2, W.thr[spk] * sc); g.strokeStyle = "rgba(255,255,255,.35)"; g.setLineDash([4 * dpr, 4 * dpr]);
+      g.beginPath(); g.moveTo(0, mid - tv); g.lineTo(w, mid - tv); g.moveTo(0, mid + tv); g.lineTo(w, mid + tv); g.stroke(); g.setLineDash([]);
+    });
+    g.font = `${12 * dpr}px system-ui`;
+    for (const wd of W.words) {
+      if (wd.e < va - 1 || wd.s > vb) continue;
+      const y = wordsY + 5 * dpr + Math.max(0, SPK().indexOf(wd.spk)) * 24 * dpr, x0 = X(wd.s), x1 = Math.max(X(wd.e), x0 + 2 * dpr);
+      const col = RGB(COL(wd.spk));
+      g.fillStyle = `rgba(${col},.45)`; g.fillRect(x0, y, x1 - x0, 4 * dpr);
+      g.fillStyle = `rgb(${col})`; g.fillRect(x0, y, dpr, 16 * dpr); g.fillText(wd.w, x0 + 3 * dpr, y + 5 * dpr);
+    }
+    grp.forEach((it, i) => {
+      const [ca, cb] = edges(it), me = i === act;
+      for (const [t, k] of [[ca, "a"], [cb, "b"]]) {
+        g.fillStyle = me && drag === k ? "#fff" : me ? "#ff5a5f" : "rgba(255,90,95,.45)";
+        g.fillRect(X(t) - dpr, rulerH, 2 * dpr, h - rulerH); if (me) g.fillRect(X(t) - 6 * dpr, rulerH, 12 * dpr, 10 * dpr);
+      }
+    });
+    if (sel_) { g.fillStyle = drawKind === "mute" ? "rgba(245,165,36,.35)" : "rgba(124,140,255,.3)"; g.fillRect(X(Math.min(...sel_)), rulerH, Math.abs(X(sel_[1]) - X(sel_[0])), h - rulerH); }
+    const hd = PL.owner === gid(grp) ? PL.head() : null;
+    if (hd != null) { g.fillStyle = "#fff"; g.fillRect(X(hd), 0, 1.5 * dpr, h); }
+  };
+  const tick = () => { if (!box.isConnected) return; if (PL.map && PL.owner === gid(grp)) req(); requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+  const rect = () => cv.getBoundingClientRect();
+  const tAt = (e) => V[0] + (e.clientX - rect().left) / rect().width * (V[1] - V[0]);
+  const px = (t) => (t - V[0]) / (V[1] - V[0]) * rect().width;
+  const near = (e) => {   // [cut index, "a"|"b"] of the edge under the mouse; the selected cut wins ties
+    const x = e.clientX - rect().left; let best = null;
+    grp.forEach((it, i) => { const [ca, cb] = edges(it);
+      for (const [t, k] of [[ca, "a"], [cb, "b"]]) { const d = Math.abs(x - px(t)) - (i === act ? 2 : 0); if (d < 9 && (!best || d < best[2])) best = [i, k, d]; } });
+    return best;
+  };
+  // playback over the whole group
+  const play_ = (pieces, mutes) => { if (!W) return; PL.owner = gid(grp); playPieces(W, pieces, mutes); };
+  const cutsOn = () => grp.filter(isCut).map(it => [...edges(it), fadeOf(it) / FR]).sort((x, y) => x[0] - y[0]);
+  const mutesOn = () => grp.filter(isMute).map(it => { const [a, b] = edges(it); return { a, b, spk: it.spk }; });
+  const piecesFrom = (s, e) => {   // kept spans of [s, e] around the active cuts, each with the fade of the cut before it
+    const out = []; let t = s, f = 0;
+    for (const [a, b, fd] of cutsOn()) { if (b <= s || a >= e) continue; if (a > t) out.push([t, a, f]); t = Math.max(t, b); f = fd; }
+    if (e > t) out.push([t, e, f]); return out;
+  };
+  const playJoin = () => { const [ca, cb] = span(grp); play_(piecesFrom(ca - JOIN, cb + JOIN), mutesOn()); };
+  const playEdited = () => { const [ca, cb] = span(grp); play_(piecesFrom(ca - 2.5, cb + 2.5), mutesOn()); };
+  const playFrom = (t) => play_(piecesFrom(t, W.b), mutesOn());
+  const toggleLoop = () => {
+    if (PL.loop && PL.loopId === gid(grp)) { PL.loop = null; PL.loopId = null; PL.stop(); }
+    else { PL.loopId = gid(grp); PL.loop = () => playJoin(); playJoin(); }
+    showChk();
+  };
+  let restartT = null;
+  const edgesChanged = () => { showChk(); req(); if (PL.loop && PL.loopId === gid(grp)) { clearTimeout(restartT); restartT = setTimeout(playJoin, 120); } };
+  cv.onwheel = (e) => {
+    if (!W) return; e.preventDefault();
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const d = (V[1] - V[0]) * (e.deltaX || e.deltaY) / 600; V = clampV(V[0] + d, V[1] + d); req(); return; }
+    const t = tAt(e), k = Math.exp(e.deltaY * 0.0015), s = Math.min(W.b - W.a, Math.max(0.15, (V[1] - V[0]) * k));
+    const f = (t - V[0]) / (V[1] - V[0]); V = clampV(t - f * s, t - f * s + s); req();
+  };
+  cv.onpointerdown = (e) => {
+    if (!W) return; const n = near(e);
+    if (n) { if (n[0] !== act) { act = n[0]; showChk(); } drag = n[1]; }
+    else if (e.shiftKey || arm) { drag = "new"; drawKind = arm || "cut"; sel_ = [snap(tAt(e)), snap(tAt(e))]; }
+    else drag = { pan: e.clientX, v: V.slice(), t: tAt(e), moved: false };
+    cv.setPointerCapture(e.pointerId); req();
+  };
+  cv.onpointermove = (e) => {
+    if (!W) return;
+    hoverT = tAt(e); hov.textContent = `${fmtMs(hoverT)}  ·  frame ${Math.floor(hoverT * FR)}`;
+    cv.style.cursor = drag && drag.pan != null ? "grabbing" : drag || near(e) ? "ew-resize" : arm ? "cell" : "crosshair";
+    const it = A(), [ca, cb] = edges(it), t = tAt(e);
+    if (drag === "a") { if (setEdges(it, Math.min(t, cb - 1 / FR), cb)) edgesChanged(); }
+    else if (drag === "b") { if (setEdges(it, ca, Math.max(t, ca + 1 / FR))) edgesChanged(); }
+    else if (drag === "new") sel_[1] = snap(t);
+    else if (drag && drag.pan != null) {
+      const dx = e.clientX - drag.pan; if (Math.abs(dx) > 3) drag.moved = true;
+      if (drag.moved) { const d = -dx / rect().width * (drag.v[1] - drag.v[0]); V = clampV(drag.v[0] + d, drag.v[1] + d); }
+    }
+    req();
+  };
+  cv.onpointerleave = () => { hoverT = null; hov.textContent = ""; req(); };
+  cv.onpointerup = () => {
+    const d = drag; drag = null; req(); if (!d) return;
+    if (d.pan != null) {
+      if (d.moved) return;
+      const hit = grp.findIndex(it => { const [a, b] = edges(it); return d.t >= a && d.t <= b; });
+      if (hit >= 0 && hit !== act && grp.length > 1) { act = hit; showChk(); req(); return; }
+      playFrom(d.t); return;
+    }
+    if (d === "new") {
+      const [p, q] = sel_; sel_ = null; req();
+      if (Math.abs(q - p) < 2 / FR) return;
+      const a = Math.min(p, q), b = Math.max(p, q), spk = loudest(a, b), kind = drawKind;
+      const u = { id: `user:${kind}|${spk}|${a.toFixed(2)}|${b.toFixed(2)}`, group: "user", kind, spk, a, b, anchor: gid(grp), look: true, note: "", risk: "-", default: kind,
+        decision: kind, verify: "unchecked", verify_reason: "", verify_words: [], ctx: [] };
+      D.items.push(u); D.items.sort((x, y) => x.a - y.a); setDirty(true); setArm(null);
+      const keepV = V;
+      renderCuts();   // the row now includes the new section (anchored to it); keep the zoom, select the new one
+      const g2 = GROUPS.find(g => g.includes(u));
+      if (g2) { waveCache[gid(g2)] = W; openId = gid(g2); editorView[gid(g2)] = keepV; editorAct[gid(g2)] = u.id; renderCuts(); }
+      recheck(u); return;
+    }
+    recheck(A());
+  };
+  const loudest = (a, b) => { const i = Math.max(0, Math.floor((a - W.a) / W.bin)), j = Math.ceil((b - W.a) / W.bin);
+    const s = k => W.peaks[k].slice(i, j).reduce((p, v) => p + v, 0); return SPK().reduce((best, k) => s(k) > s(best) ? k : best); };
+  const nudge = (which, d) => { const it = A(), [a, b] = edges(it);
+    // step from the frame the edge is on (an unsnapped 105.85 goes to 105.867, not 105.9)
+    const step = (t) => { const f = t * FR; return (Math.abs(f - Math.round(f)) < 1e-6 ? Math.round(f) + d : d > 0 ? Math.ceil(f) : Math.floor(f)) / FR; };
+    if (which === "a" ? setEdges(it, step(a), b) : setEdges(it, a, step(b))) edgesChanged();
+    clearTimeout(nudge.t); nudge.t = setTimeout(() => recheck(it), 300); };
+  const zoom = (k) => { const m = (V[0] + V[1]) / 2, half = Math.min(W.b - W.a, Math.max(0.15, (V[1] - V[0]) * k)) / 2; V = clampV(m - half, m + half); req(); };
+  box.querySelectorAll("[data-n]").forEach(bt => bt.onclick = () => nudge(bt.dataset.n[0], bt.dataset.n[1] === "+" ? 1 : -1));
+  fsel.onchange = () => { const it = A(), v = +fsel.value; if (v === 2) delete it.fade; else it.fade = v; setDirty(true); fillRow(row); edgesChanged(); };
+  box.querySelectorAll("[data-add]").forEach(bt => bt.onclick = () => setArm(bt.dataset.add));
+  box.querySelector('[data-z="in"]').onclick = () => zoom(0.6);
+  box.querySelector('[data-z="out"]').onclick = () => zoom(1 / 0.6);
+  box.querySelector('[data-z="fit"]').onclick = () => { fit(); req(); };
+  box.querySelector('[data-x="join"]').onclick = playJoin;
+  box.querySelector('[data-x="loop"]').onclick = toggleLoop;
+  box.querySelector('[data-x="edit"]').onclick = playEdited;
+  box.querySelector('[data-x="orig"]').onclick = () => { const [ca, cb] = span(grp); play_([[ca - 2.5, cb + 2.5, 0]], []); };
+  box.querySelector('[data-x="stop"]').onclick = () => { PL.loop = null; PL.loopId = null; PL.stop(); showChk(); };
+  const mg = box.querySelector('[data-x="merge"]');
+  if (mg) mg.onclick = () => {
+    // one cut over the whole row: the first cut keeps it (edges = first start .. last end), the others are kept/dropped
+    const on = grp.filter(x => x.decision !== "keep" && !isMuteKind(x)), pool = on.length ? on : grp.filter(x => !isMuteKind(x));
+    if (!pool.length) return;
+    const a = Math.min(...pool.map(x => edges(x)[0])), b = Math.max(...pool.map(x => edges(x)[1]));
+    const keep = pool.find(x => x.group !== "user") || pool[0];
+    keep.decision = "cut"; setEdges(keep, a, b);
+    for (const x of pool) if (x !== keep) { if (x.group === "user") D.items.splice(D.items.indexOf(x), 1); else x.decision = "keep"; }
+    act = grp.indexOf(keep); setDirty(true); fillRow(row); edgesChanged(); recheck(keep);
+  };
+  edKey = (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { nudge(e.shiftKey ? "a" : "b", e.key === "ArrowRight" ? 1 : -1); return true; }
+    if (e.key === " ") { playJoin(); return true; }
+    if (e.key === "l") { toggleLoop(); return true; }
+    if (e.key === "Tab" && grp.length > 1) { act = (act + (e.shiftKey ? grp.length - 1 : 1)) % grp.length; showChk(); req(); return true; }
+    if (e.key === "c") { setArm("cut"); return true; }
+    if (e.key === "m") { setArm("mute"); return true; }
+    if ((e.key === "Delete" || e.key === "Backspace") && A().group === "user") { delUser(A()); return true; }
+    if (e.key === "Escape" && arm) { setArm(null); return true; }
+    if (e.key === "+" || e.key === "=") { zoom(0.6); return true; }
+    if (e.key === "-") { zoom(1 / 0.6); return true; }
+    return false;
+  };
+  getWave(grp).then(w => { W = w; if (editorView[gid(grp)]) { V = clampV(...editorView[gid(grp)]); delete editorView[gid(grp)]; } else fit(); draw(); }).catch(err => { chk.textContent = "could not load audio: " + err; });
+  new ResizeObserver(req).observe(cv);
+}
+
+function renderTable(id, rows, cols, onPlay, addRow) {
+  const sec = $("#" + id);
+  sec.innerHTML = `<table><thead><tr>${cols.map(c => `<th>${c.h}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table>
+    <p><button class="btn" id="${id}-add">+ add</button></p>`;
+  const tb = $("tbody", sec);
+  rows.forEach((r, k) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = cols.map(c => `<td>${c.render(r)}</td>`).join("") +
+      `<td style="white-space:nowrap"><button class="btn" data-a="play">▶</button> <button class="btn" data-a="del">✕</button></td>`;
+    tr.querySelectorAll("input").forEach(inp => inp.onchange = () => { cols.find(c => c.k === inp.dataset.k).set(r, inp.value); setDirty(true); });
+    $('[data-a="play"]', tr).onclick = () => onPlay(r);
+    $('[data-a="del"]', tr).onclick = () => { rows.splice(k, 1); setDirty(true); renderAll(); };
+    tb.appendChild(tr);
+  });
+  $(`#${id}-add`).onclick = () => { rows.push(addRow()); setDirty(true); renderAll(); };
+}
+const tIn = (k, v) => `<input class="num" type="text" data-k="${k}" value="${fmt(v)}">`;
+const txt = (k, v) => `<input type="text" data-k="${k}" value="${String(v).replace(/"/g, "&quot;")}">`;
+function renderAll() {
+  renderCuts();
+  renderTable("chapters", D.chapters, [
+    { h: "Start", k: "t", render: r => tIn("t", r[0]), set: (r, v) => r[0] = +parseT(v).toFixed(2) },
+    { h: "Title", k: "x", render: r => txt("x", r[1]), set: (r, v) => r[1] = v }],
+    r => play(`/audio?a=${r[0]}&b=${r[0] + 8}`), () => [D.show.start, "New chapter"]);
+  renderTable("shorts", D.shorts, [
+    { h: "Start", k: "a", render: r => tIn("a", r[0]), set: (r, v) => r[0] = +parseT(v).toFixed(2) },
+    { h: "End", k: "b", render: r => tIn("b", r[1]), set: (r, v) => r[1] = +parseT(v).toFixed(2) },
+    { h: "Len", k: "-", render: r => `${(r[1] - r[0]).toFixed(0)} s`, set: () => {} },
+    { h: "Title", k: "x", render: r => txt("x", r[2]), set: (r, v) => r[2] = v }],
+    r => play(`/audio?a=${r[0]}&b=${Math.min(r[1], r[0] + 20)}`), () => [D.show.start, D.show.start + 30, "SHORT: "]);
+  renderTable("cold", D.cold_open, [
+    { h: "Start", k: "a", render: r => tIn("a", r[0] / 30), set: (r, v) => r[0] = Math.round(parseT(v) * 30) },
+    { h: "End", k: "b", render: r => tIn("b", r[1] / 30), set: (r, v) => r[1] = Math.round(parseT(v) * 30) },
+    { h: "Len", k: "-", render: r => `${((r[1] - r[0]) / 30).toFixed(2)} s`, set: () => {} }],
+    r => play(`/audio?a=${r[0] / 30}&b=${r[1] / 30}`), () => [Math.round(D.show.start * 30), Math.round(D.show.start * 30) + 90]);
+  const total = D.cold_open.reduce((s, r) => s + (r[1] - r[0]) / 30, 0);
+  const p = document.createElement("p");
+  p.innerHTML = `Total ${total.toFixed(2)} s (target 8-11 s). <button class="btn" id="coldAll">▶ play whole cold open</button>`;
+  $("#cold").prepend(p);
+  $("#coldAll").onclick = () => play(`/audio_segs?segs=${D.cold_open.map(r => `${r[0] / 30},${r[1] / 30}`).join(";")}`);
+}
+
+async function save() {
+  const decisions = {}, edits = {}, fades = {}, user_cuts = [];
+  D.items.forEach(it => {
+    if (it.group === "user") { user_cuts.push({ a: it.a, b: it.b, spk: it.spk, kind: it.kind || "cut", decision: it.decision, ...(it.anchor ? { anchor: it.anchor } : {}), ...(it.fade != null ? { fade: it.fade } : {}) }); return; }
+    decisions[it.id] = it.decision; if (isEdited(it)) edits[it.id] = [it.a2, it.b2]; if (it.fade != null) fades[it.id] = it.fade;
+  });
+  const r = await fetch("/save", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ decisions, edits, fades, user_cuts, chapters: D.chapters, shorts: D.shorts, cold_open: D.cold_open }) }).then(r => r.json());
+  D.saved_at = r.saved_at; setDirty(false);
+  $("#status").textContent = `saved ${r.saved_at} · ${r.changed_from_default} changed from default · ${r.edited} edited · ${r.user_cuts} your cuts` + (r.config_changed.length ? ` · config: ${r.config_changed.join(", ")}` : "");
+}
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  ["cuts", "cold", "chapters", "shorts"].forEach(id => $("#" + id).hidden = id !== b.dataset.tab);
+});
+document.querySelectorAll(".filters input, .filters select").forEach(x => x.onchange = () => { sel = 0; renderCuts(); });
+$("#save").onclick = save;
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "s") { e.preventDefault(); save(); return; }
+  if ($("#cuts").hidden || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  const grp = GROUPS[sel]; if (!grp) return;
+  if (openId === gid(grp) && edKey && edKey(e)) { e.preventDefault(); return; }
+  if (e.key === "j") { sel = Math.min(GROUPS.length - 1, sel + 1); markSel(); $("#list .row.sel").scrollIntoView({ block: "center" }); }
+  else if (e.key === "k") { sel = Math.max(0, sel - 1); markSel(); $("#list .row.sel").scrollIntoView({ block: "center" }); }
+  else if (e.key === " ") { e.preventDefault(); playGroup(grp, true); }
+  else if (e.key === "o") playGroup(grp, false);
+  else if (e.key === "e") toggleEditor(grp);
+  else if (e.key === "x") {   // toggles the whole row: all on -> all keep, otherwise all on
+    const allOn = grp.every(x => x.decision !== "keep");
+    grp.forEach(x => x.decision = allOn ? "keep" : options(x)[0]); setDirty(true); fillRow(rowEls[grp[0].id]); updateSummary(); }
+});
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+fetch("/data").then(r => r.json()).then(d => { D = d; $("#title").textContent = `${d.episode} review`; document.title = `${d.episode} review`; setDirty(false); renderAll(); });
+</script>
+</body>
+</html>

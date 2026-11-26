@@ -1,0 +1,47 @@
+{
+ "id": "example",
+ "name": "Example Show",
+ "fps": 30,
+ "speakers": [
+  {"id": "host", "name": "Host", "label": 2, "color": "#5fb37c"},
+  {"id": "guest", "name": "Guest", "label": 0, "color": "#a487f0"}
+ ],
+ "cut": {"merge_gap": 0.6, "tail": 0.20, "head": 0.14, "solo_min_s": 110.0, "solo_enter_s": 4.0, "solo_absorb_s": 2.5,
+         "keep_repeats_extra": []},
+ "detect": {},
+ "work_pattern": "{episode}/_work",
+ "episode_defaults": {"cold_open_label": "COLD OPEN"},
+ "premiere": {
+  "tracks": {
+   "solo": {"host": "V6", "guest": "V7"},
+   "split": {"host": "V9", "guest": "V10"},
+   "audio": {"host": "A1", "guest": "A2"}
+  },
+  "background": {"key": "BG", "name": "Split Background", "track": "V1", "in": 0, "label": 6, "strip_audio": false},
+  "solo_background": {
+   "host": {"key": "host_bg", "name": "host_background.png", "track": "V3", "label": 2},
+   "guest": {"key": "guest_bg", "name": "guest_background.png", "track": "V4", "label": 0}
+  },
+  "divider": null,
+  "cold_open_audio": ["host", "guest"],
+  "intro_len": 300,
+  "outro_window": null,
+  "intro": {"nest": "Intro nest", "track": "V13", "audio_track": "A4", "in": 0, "out": 600, "anchor": 150, "offset": -15, "level_db": 0},
+  "outro": null,
+  "nest_shell_items": [],
+  "nest_shell_tracks": ["V13", "V14", "A4"],
+  "layout_transition": {"id": "AE.ADBE Cross Dissolve New", "frames": 10, "alignment": 0.5},
+  "split_transforms": {
+   "host": [{"comp": "motion", "param": "Crop Right", "value": 50},
+            {"comp": "t0", "param": "Position", "value": [0.25, 0.5]}],
+   "guest": [{"comp": "motion", "param": "Crop Left", "value": 50},
+             {"comp": "t0", "param": "Position", "value": [0.75, 0.5]}]
+  },
+  "outro_slide": null,
+  "marker_colors": {"chapter": 0, "short": 1, "cold_open": 1},
+  "keep_markers": [],
+  "park_sequence": null,
+  "template_sequences": ["Intro nest"],
+  "item_names": {"V": "{episode} {Name} VIDEO", "A": "{episode} {Name} AUDIO"}
+ }
+}

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# per-machine settings (copy local.example.json) and a local import of the show's rules
+local.json
+CLAUDE.local.md
+# show profiles never go into this repo (examples/show is the template)
+/shows/
+/episodes/
+.claude/settings.local.json
+tools/
+
+# episode work output, if a work folder or media ever ends up inside the repo
+_work/
+*.wav
+*.mov
+*.mp4
+review.json
+verify.json
+detections.json
+edl.json
+plan.json
+fades.json
+
+# OS / editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "premiere-pro": {
+      "command": "node",
+      "args": ["${PREMIERE_MCP_DIR}/server/src/index.js"],
+      "env": {
+        "FFMPEG_PATH": "${FFMPEG_PATH:-}",
+        "FFPROBE_PATH": "${FFPROBE_PATH:-}",
+        "PREMIERE_MCP_PYTHON": "${PREMIERE_MCP_PYTHON:-}"
+      }
+    }
+  }
+}

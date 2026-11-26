@@ -1,0 +1,19 @@
+{
+ "show_dir": "C:/path/to/my-show",
+ "media_root": "C:/path/to/media",
+ "shows": {},
+ "premiere_mcp": "C:/path/to/premiere-mcp",
+ "gpu_python": "",
+ "whisper_python": "",
+ "ffmpeg": "ffmpeg",
+ "asr_device": "cuda",
+ "_help": {
+  "show_dir": "Default show profile folder (show.json + episodes/). See docs/show-profile.md; examples/show is a template.",
+  "media_root": "Folder that holds the raw episode folders. Episode configs store work/raw paths relative to it. Several shows: \"shows\": {\"<show id>\": {\"media_root\": \"...\"}}.",
+  "premiere_mcp": "Your clone of the premiere-mcp repo (tq/fill_holes.py runs its server/src/transcribe.py).",
+  "gpu_python": "Python with torch + torchaudio for tq/align.py and tq/verify_cuts.py. Empty = the Python running the script.",
+  "whisper_python": "Python with faster-whisper for tq/fill_holes.py. Empty = the Python running the script.",
+  "ffmpeg": "ffmpeg executable, or just ffmpeg if it is on PATH.",
+  "asr_device": "Device for NeMo-Speech.cpp in tq/asr_nemotron.py (cuda, or what your build supports). Optional: nemo_speech (binary path), nemotron_model (decoder gguf)."
+ }
+}
